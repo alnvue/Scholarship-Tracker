@@ -54,6 +54,19 @@ def update_status(scholarship_id, new_status):
 
     conn.commit()
     conn.close()
+
+def get_upcoming_scholarships():
+    conn = sqlite3.connect("scholarships.db")
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT * FROM scholarships WHERE status != 'Submitted' ORDER BY deadline ASC"
+    )
+    rows = cursor.fetchall()
+
+    conn.close()
+    return rows
+
 if __name__ == "__main__":
     create_tables()
     print("Database ready!")
