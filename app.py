@@ -1,6 +1,6 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
-from database import create_tables, get_scholarships
+from database import create_tables, get_scholarships, add_scholarship 
 
 app = Flask(__name__)
 CORS(app)
@@ -24,6 +24,19 @@ def list_scholarships():
         })
 
     return jsonify(scholarships)
+
+@app.route("/api/scholarships", methods=["POST"])
+def create_scholarship():
+    data = request.get_json()
+
+    add_scholarship(
+        data["name"],
+        float(data["amount"]),
+        data["deadline"],
+        data["requirements"],
+    )
+
+    return jsonify({"message": "Saved"}), 201
 
 if __name__ == "__main__":
     app.run(debug=True)
