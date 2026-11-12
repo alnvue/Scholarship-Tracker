@@ -21,6 +21,7 @@ def list_scholarships():
             "deadline": s[3],
             "requirements": s[4],
             "status": s[5],
+            "submitted_date": s[6],
         })
 
     return jsonify(scholarships)

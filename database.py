@@ -1,5 +1,5 @@
 import sqlite3
-
+from datetime import date
 
 def create_tables():
     conn = sqlite3.connect("scholarships.db")
@@ -15,6 +15,11 @@ def create_tables():
             status TEXT DEFAULT 'Not Started'
         )
     """)
+
+    try:
+        cursor.execute("ALTER TABLE scholarships ADD COLUMN submitted_date TEXT")
+    except sqlite3.OperationalError:
+        pass # column already exists
 
     conn.commit()
     conn.close()
@@ -47,9 +52,14 @@ def update_status(scholarship_id, new_status):
     conn = sqlite3.connect("scholarships.db")
     cursor = conn.cursor()
 
+    if new_status == "Submitted":
+        submitted_date = date.today().isoformat()
+    else:
+        submitted_date = None
+
     cursor.execute(
-        "UPDATE scholarships SET status = ? WHERE id = ?",
-        (new_status, scholarship_id),
+        "UPDATE scholarships SET status = ?, submitted_date = ? WHERE id = ?",
+        (new_status, submitted_date, scholarship_id),
     )
 
     conn.commit()

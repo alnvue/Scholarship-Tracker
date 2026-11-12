@@ -74,6 +74,7 @@ function App() {
               <option>Submitted</option>
             </select>
           </p>
+          {s.submitted_date && <p>Submitted on: {s.submitted_date}</p>}
         </div>
       ))}
     </div>
