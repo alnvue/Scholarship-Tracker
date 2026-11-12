@@ -35,6 +35,14 @@ function App() {
     });
   }
 
+  function changeStatus(id, newStatus) {
+    fetch(`${API}/${id}/status`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: newStatus }),
+    }).then(() => loadScholarships());
+  }
+
   const inputStyle = { display: "block", width: "100%", padding: 8, marginBottom: 10, boxSizing: "border-box" };
 
   return (
@@ -57,7 +65,15 @@ function App() {
           <p>Amount: ${s.amount}</p>
           <p>Deadline: {s.deadline}</p>
           <p>Requirements: {s.requirements}</p>
-          <p>Status: {s.status}</p>
+          <p>
+            Status:{" "}
+            <select value={s.status} onChange={(e) => changeStatus(s.id, e.target.value)}>
+              <option>Not Started</option>
+              <option>In Progress</option>
+              <option>Applied</option>
+              <option>Submitted</option>
+            </select>
+          </p>
         </div>
       ))}
     </div>

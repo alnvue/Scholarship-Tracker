@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from database import create_tables, get_scholarships, add_scholarship 
+from database import create_tables, get_scholarships, add_scholarship, update_status
 
 app = Flask(__name__)
 CORS(app)
@@ -37,6 +37,12 @@ def create_scholarship():
     )
 
     return jsonify({"message": "Saved"}), 201
+
+@app.route("/api/scholarships/<int:scholarship_id>/status", methods=["PUT"])
+def change_status(scholarship_id):
+    data = request.get_json()
+    update_status(scholarship_id, data["status"])
+    return jsonify({"message": "Updated"})
 
 if __name__ == "__main__":
     app.run(debug=True)
