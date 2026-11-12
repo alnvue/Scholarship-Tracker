@@ -1,10 +1,11 @@
-from database import create_tables, add_scholarship, get_scholarships
+from database import create_tables, add_scholarship, get_scholarships, update_status
 
 def show_menu():
     print("\n--- Scholarship Tracker ---")
-    print("1. Add a Scholarship")
-    print("2. View All Scholarships")
-    print("3. Quit")
+    print("1. Add a scholarship")
+    print("2. View all scholarships")
+    print("3. Update status")
+    print("4. Quit")
 
 def add_flow():
     name = input("Scholarship name: ")
@@ -24,6 +25,24 @@ def view_flow():
     for s in scholarships:
         print(f'{s[0]}. {s[1]} | Amount: ${s[2]} | Deadline: {s[3]} | Requirements: {s[4]} | Status: {s[5]}')
 
+def update_flow():
+    view_flow()
+    scholarship_id = int(input("Enter the ID to Update: "))
+
+    print("1. Not Started")
+    print("2. In Progress")
+    print("3. Submitted")
+    choice = input("New status: ")
+
+    statuses = {"1": "Not Started", "2": "In Progress", "3": "Submitted"}
+
+    if choice in statuses:
+        update_status(scholarship_id, statuses[choice])
+        print("Updated!")
+    else: 
+        print("Invalid choice.")
+    
+
 create_tables()
 
 while True:
@@ -34,7 +53,10 @@ while True:
     elif choice == "2":
         view_flow()
     elif choice == "3":
+        update_flow()
+    elif choice == "4":
         print("Goodbye!")
         break
     else:
-        print("Please enter 1, 2, or 3.")
+        print("Please enter 1, 2, 3, or 4.")
+    

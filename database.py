@@ -43,7 +43,17 @@ def get_scholarships():
     conn.close()
     return rows
 
+def update_status(scholarship_id, new_status):
+    conn = sqlite3.connect("scholarships.db")
+    cursor = conn.cursor()
 
+    cursor.execute(
+        "UPDATE scholarships SET status = ? WHERE id = ?",
+        (new_status, scholarship_id),
+    )
+
+    conn.commit()
+    conn.close()
 if __name__ == "__main__":
     create_tables()
     print("Database ready!")
