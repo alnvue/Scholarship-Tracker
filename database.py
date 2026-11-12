@@ -1,9 +1,11 @@
 import sqlite3
+
+
 def create_tables():
-    conn = sqlite3.connect('database.db')
+    conn = sqlite3.connect("scholarships.db")
     cursor = conn.cursor()
 
-    cursor.execute('''
+    cursor.execute("""
         CREATE TABLE IF NOT EXISTS scholarships (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
@@ -12,10 +14,36 @@ def create_tables():
             requirements TEXT,
             status TEXT DEFAULT 'Not Started'
         )
-    ''')
+    """)
 
     conn.commit()
     conn.close()
-if __name__ == '__main__':
+
+
+def add_scholarship(name, amount, deadline, requirements):
+    conn = sqlite3.connect("scholarships.db")
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "INSERT INTO scholarships (name, amount, deadline, requirements) VALUES (?, ?, ?, ?)",
+        (name, amount, deadline, requirements),
+    )
+
+    conn.commit()
+    conn.close()
+
+
+def get_scholarships():
+    conn = sqlite3.connect("scholarships.db")
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM scholarships")
+    rows = cursor.fetchall()
+
+    conn.close()
+    return rows
+
+
+if __name__ == "__main__":
     create_tables()
-    print("Database and tables created successfully.")
+    print("Database ready!")
