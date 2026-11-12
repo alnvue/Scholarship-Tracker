@@ -46,7 +46,7 @@ function App() {
   const inputStyle = { display: "block", width: "100%", padding: 8, marginBottom: 10, boxSizing: "border-box" };
 
   return (
-    <div style={{ maxWidth: 700, margin: "40px auto", fontFamily: "sans-serif" }}>
+    <div style={{ maxWidth: 700, margin: "40px auto", fontFamily: "sans-serif", textAlign: "left", color: "#222" }}>
       <h1>Scholarship Tracker</h1>
 
       <form onSubmit={handleSubmit} style={{ marginBottom: 30 }}>
