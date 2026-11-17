@@ -1,6 +1,12 @@
 import sqlite3
 from datetime import date
 
+COLUMNS = (
+    "id, name, amount, deadline, requirements, status, "
+    "submitted_date, provider, link, description, open_date, winner_date"
+)
+
+
 def create_tables():
     conn = sqlite3.connect("scholarships.db")
     cursor = conn.cursor()
@@ -16,22 +22,43 @@ def create_tables():
         )
     """)
 
-    try:
-        cursor.execute("ALTER TABLE scholarships ADD COLUMN submitted_date TEXT")
-    except sqlite3.OperationalError:
-        pass # column already exists
+    new_columns = [
+        "submitted_date",
+        "provider",
+        "link",
+        "description",
+        "open_date",
+        "winner_date",
+    ]
+    for column in new_columns:
+        try:
+            cursor.execute(f"ALTER TABLE scholarships ADD COLUMN {column} TEXT")
+        except sqlite3.OperationalError:
+            pass  # column already exists
 
     conn.commit()
     conn.close()
 
 
-def add_scholarship(name, amount, deadline, requirements):
+def add_scholarship(
+    name,
+    amount,
+    deadline,
+    requirements,
+    provider="",
+    link="",
+    description="",
+    open_date="",
+    winner_date="",
+):
     conn = sqlite3.connect("scholarships.db")
     cursor = conn.cursor()
 
     cursor.execute(
-        "INSERT INTO scholarships (name, amount, deadline, requirements) VALUES (?, ?, ?, ?)",
-        (name, amount, deadline, requirements),
+        "INSERT INTO scholarships "
+        "(name, amount, deadline, requirements, provider, link, description, open_date, winner_date) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (name, amount, deadline, requirements, provider, link, description, open_date, winner_date),
     )
 
     conn.commit()
@@ -42,11 +69,26 @@ def get_scholarships():
     conn = sqlite3.connect("scholarships.db")
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM scholarships")
+    cursor.execute(f"SELECT {COLUMNS} FROM scholarships")
     rows = cursor.fetchall()
 
     conn.close()
     return rows
+
+
+def get_upcoming_scholarships():
+    conn = sqlite3.connect("scholarships.db")
+    cursor = conn.cursor()
+
+    cursor.execute(
+        f"SELECT {COLUMNS} FROM scholarships "
+        "WHERE status != 'Submitted' ORDER BY deadline ASC"
+    )
+    rows = cursor.fetchall()
+
+    conn.close()
+    return rows
+
 
 def update_status(scholarship_id, new_status):
     conn = sqlite3.connect("scholarships.db")
@@ -65,17 +107,16 @@ def update_status(scholarship_id, new_status):
     conn.commit()
     conn.close()
 
-def get_upcoming_scholarships():
+
+def delete_scholarship(scholarship_id):
     conn = sqlite3.connect("scholarships.db")
     cursor = conn.cursor()
 
-    cursor.execute(
-        "SELECT * FROM scholarships WHERE status != 'Submitted' ORDER BY deadline ASC"
-    )
-    rows = cursor.fetchall()
+    cursor.execute("DELETE FROM scholarships WHERE id = ?", (scholarship_id,))
 
+    conn.commit()
     conn.close()
-    return rows
+
 
 if __name__ == "__main__":
     create_tables()
