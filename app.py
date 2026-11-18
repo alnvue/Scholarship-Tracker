@@ -4,6 +4,7 @@ from database import (
     create_tables,
     get_scholarships,
     add_scholarship,
+    update_scholarship,
     update_status,
     delete_scholarship,
 )
@@ -12,6 +13,24 @@ app = Flask(__name__)
 CORS(app)
 
 create_tables()
+
+
+def date_error(data):
+    deadline = data["deadline"]
+    open_date = data.get("open_date", "")
+    winner_date = data.get("winner_date", "")
+
+    if open_date and open_date > deadline:
+        return "The open date must be on or before the deadline."
+    if winner_date and winner_date < deadline:
+        return "The winner date must be on or after the deadline."
+    return None
+
+
+def clean_link(link):
+    if link and not link.startswith(("http://", "https://")):
+        return ""
+    return link
 
 
 @app.route("/api/scholarships", methods=["GET"])
@@ -42,33 +61,47 @@ def list_scholarships():
 def create_scholarship():
     data = request.get_json()
 
-    deadline = data["deadline"]
-    open_date = data.get("open_date", "")
-    winner_date = data.get("winner_date", "")
-
-    if open_date and open_date > deadline:
-        return jsonify({"error": "The open date must be on or before the deadline."}), 400
-
-    if winner_date and winner_date < deadline:
-        return jsonify({"error": "The winner date must be on or after the deadline."}), 400
-
-    link = data.get("link", "")
-    if link and not link.startswith(("http://", "https://")):
-        link = ""
+    error = date_error(data)
+    if error:
+        return jsonify({"error": error}), 400
 
     add_scholarship(
         data["name"],
         float(data["amount"]),
-        deadline,
+        data["deadline"],
         data["requirements"],
         provider=data.get("provider", ""),
-        link=link,
+        link=clean_link(data.get("link", "")),
         description=data.get("description", ""),
-        open_date=open_date,
-        winner_date=winner_date,
+        open_date=data.get("open_date", ""),
+        winner_date=data.get("winner_date", ""),
     )
 
     return jsonify({"message": "Saved"}), 201
+
+
+@app.route("/api/scholarships/<int:scholarship_id>", methods=["PUT"])
+def edit_scholarship(scholarship_id):
+    data = request.get_json()
+
+    error = date_error(data)
+    if error:
+        return jsonify({"error": error}), 400
+
+    update_scholarship(
+        scholarship_id,
+        data["name"],
+        float(data["amount"]),
+        data["deadline"],
+        data["requirements"],
+        provider=data.get("provider", ""),
+        link=clean_link(data.get("link", "")),
+        description=data.get("description", ""),
+        open_date=data.get("open_date", ""),
+        winner_date=data.get("winner_date", ""),
+    )
+
+    return jsonify({"message": "Updated"})
 
 
 @app.route("/api/scholarships/<int:scholarship_id>/status", methods=["PUT"])

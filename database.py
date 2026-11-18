@@ -117,6 +117,30 @@ def delete_scholarship(scholarship_id):
     conn.commit()
     conn.close()
 
+def update_scholarship(
+    scholarship_id,
+    name,
+    amount,
+    deadline,
+    requirements,
+    provider="",
+    link="",
+    description="",
+    open_date="",
+    winner_date="",
+):
+    conn = sqlite3.connect("scholarships.db")
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "UPDATE scholarships SET name = ?, amount = ?, deadline = ?, requirements = ?, "
+        "provider = ?, link = ?, description = ?, open_date = ?, winner_date = ? "
+        "WHERE id = ?",
+        (name, amount, deadline, requirements, provider, link, description, open_date, winner_date, scholarship_id),
+    )
+
+    conn.commit()
+    conn.close()
 
 if __name__ == "__main__":
     create_tables()

@@ -16,6 +16,20 @@ const THEMES = {
   "Monster Trail": { bg: "#6cc36c", card: "#fbfbf2", text: "#1d2b1d", border: "#2e5e2e", accent: "#3b6fd4", scene: "trail", font: PIXEL_FONT },
 };
 
+const STATUSES = ["Not Started", "In Progress", "Applied", "Submitted"];
+
+const EMPTY_FORM = {
+  name: "",
+  provider: "",
+  amount: "",
+  open_date: "",
+  deadline: "",
+  winner_date: "",
+  link: "",
+  description: "",
+  requirements: "",
+};
+
 const BITS = Array.from({ length: 14 }, (_, i) => i);
 
 function Scene({ kind }) {
@@ -107,17 +121,28 @@ function winnerText(s) {
   return `Winner announced: ${s.winner_date}`;
 }
 
+function sortList(list, sortBy) {
+  const copy = [...list];
+
+  if (sortBy === "deadline") copy.sort((a, b) => (a.deadline || "").localeCompare(b.deadline || ""));
+  else if (sortBy === "amount") copy.sort((a, b) => (b.amount || 0) - (a.amount || 0));
+  else if (sortBy === "name") copy.sort((a, b) => a.name.localeCompare(b.name));
+  else copy.sort((a, b) => b.id - a.id);
+
+  return copy;
+}
+
 function App() {
   const [scholarships, setScholarships] = useState([]);
-  const [name, setName] = useState("");
-  const [provider, setProvider] = useState("");
-  const [amount, setAmount] = useState("");
-  const [openDate, setOpenDate] = useState("");
-  const [deadline, setDeadline] = useState("");
-  const [winnerDate, setWinnerDate] = useState("");
-  const [link, setLink] = useState("");
-  const [description, setDescription] = useState("");
-  const [requirements, setRequirements] = useState("");
+  const [offline, setOffline] = useState(false);
+
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [editingId, setEditingId] = useState(null);
+
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("deadline");
+  const [hideClosed, setHideClosed] = useState(false);
 
   const [themeName, setThemeName] = useState(() => loadSetting("themeName", "Light"));
   const [customAccent, setCustomAccent] = useState(() => loadSetting("customAccent", ""));
@@ -145,30 +170,59 @@ function App() {
   function loadScholarships() {
     fetch(API)
       .then((response) => response.json())
-      .then((data) => setScholarships(data));
+      .then((data) => {
+        setScholarships(data);
+        setOffline(false);
+      })
+      .catch(() => setOffline(true));
   }
 
   useEffect(() => {
     loadScholarships();
+
+    const timer = setInterval(loadScholarships, 5000);
+    window.addEventListener("focus", loadScholarships);
+
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("focus", loadScholarships);
+    };
   }, []);
+
+  function setField(key, value) {
+    setForm({ ...form, [key]: value });
+  }
+
+  function startEdit(s) {
+    setForm({
+      name: s.name || "",
+      provider: s.provider || "",
+      amount: s.amount ?? "",
+      open_date: s.open_date || "",
+      deadline: s.deadline || "",
+      winner_date: s.winner_date || "",
+      link: s.link || "",
+      description: s.description || "",
+      requirements: s.requirements || "",
+    });
+    setEditingId(s.id);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function cancelEdit() {
+    setForm(EMPTY_FORM);
+    setEditingId(null);
+  }
 
   function handleSubmit(event) {
     event.preventDefault();
 
-    fetch(API, {
-      method: "POST",
+    const isEditing = editingId !== null;
+
+    fetch(isEditing ? `${API}/${editingId}` : API, {
+      method: isEditing ? "PUT" : "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name,
-        provider,
-        amount,
-        open_date: openDate,
-        deadline,
-        winner_date: winnerDate,
-        link,
-        description,
-        requirements,
-      }),
+      body: JSON.stringify(form),
     })
       .then((response) => response.json().then((body) => ({ ok: response.ok, body })))
       .then(({ ok, body }) => {
@@ -177,17 +231,10 @@ function App() {
           return;
         }
 
-        setName("");
-        setProvider("");
-        setAmount("");
-        setOpenDate("");
-        setDeadline("");
-        setWinnerDate("");
-        setLink("");
-        setDescription("");
-        setRequirements("");
+        cancelEdit();
         loadScholarships();
-      });
+      })
+      .catch(() => alert("Can't reach Flask. Is python app.py running?"));
   }
 
   function changeStatus(id, newStatus) {
@@ -201,8 +248,28 @@ function App() {
   function deleteScholarship(id, scholarshipName) {
     if (!window.confirm(`Delete "${scholarshipName}"?`)) return;
 
+    if (editingId === id) cancelEdit();
     fetch(`${API}/${id}`, { method: "DELETE" }).then(() => loadScholarships());
   }
+
+  const text = search.trim().toLowerCase();
+
+  const filtered = scholarships.filter((s) => {
+    const left = daysFromToday(s.deadline);
+
+    if (hideClosed && left < 0) return false;
+    if (filter === "closing" && !(left >= 0 && left <= 7)) return false;
+    if (STATUSES.includes(filter) && s.status !== filter) return false;
+
+    if (text) {
+      const haystack = `${s.name} ${s.provider || ""} ${s.requirements || ""}`.toLowerCase();
+      if (!haystack.includes(text)) return false;
+    }
+
+    return true;
+  });
+
+  const visible = sortList(filtered, sortBy);
 
   const inputStyle = {
     display: "block",
@@ -237,9 +304,12 @@ function App() {
     cursor: "pointer",
   };
 
+  const controlStyle = { ...inputStyle, width: "auto", marginBottom: 0 };
+
   return (
-        <div style={{ maxWidth: 700, margin: "0 auto", padding: "40px 16px", fontFamily: theme.font || "sans-serif", textAlign: "left", color: theme.text }}>
-          <Scene kind={theme.scene} />
+    <div style={{ maxWidth: 700, margin: "0 auto", padding: "40px 16px", fontFamily: theme.font || "sans-serif", textAlign: "left", color: theme.text }}>
+      <Scene kind={theme.scene} />
+
       <h1 style={{ fontSize: 36, marginBottom: 12 }}>Scholarship Tracker</h1>
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 24 }}>
@@ -257,38 +327,94 @@ function App() {
           Accent{" "}
           <input type="color" value={theme.accent} onChange={(e) => chooseAccent(e.target.value)} />
         </label>
+        <button onClick={loadScholarships} style={smallButton}>
+          Refresh
+        </button>
       </div>
 
+      {offline && (
+        <div style={{ background: "#c62828", color: "#ffffff", padding: 12, marginBottom: 16, borderRadius: 6 }}>
+          Can't reach Flask. Start it with: python app.py
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} style={{ marginBottom: 30 }}>
-        <input style={inputStyle} placeholder="Scholarship name" value={name} onChange={(e) => setName(e.target.value)} required />
-        <input style={inputStyle} placeholder="Provider / company (e.g. Mensa Foundation)" value={provider} onChange={(e) => setProvider(e.target.value)} />
-        <input style={inputStyle} type="number" placeholder="Amount ($)" value={amount} onChange={(e) => setAmount(e.target.value)} required />
+        <h2 style={{ fontSize: 20, marginTop: 0 }}>{editingId !== null ? "Edit scholarship" : "Add a scholarship"}</h2>
+
+        <input style={inputStyle} placeholder="Scholarship name" value={form.name} onChange={(e) => setField("name", e.target.value)} required />
+        <input style={inputStyle} placeholder="Provider / company (e.g. Mensa Foundation)" value={form.provider} onChange={(e) => setField("provider", e.target.value)} />
+        <input style={inputStyle} type="number" placeholder="Amount ($)" value={form.amount} onChange={(e) => setField("amount", e.target.value)} required />
 
         <label style={labelStyle}>Application opens (optional)</label>
-        <input style={inputStyle} type="date" value={openDate} onChange={(e) => setOpenDate(e.target.value)} />
+        <input style={inputStyle} type="date" value={form.open_date} onChange={(e) => setField("open_date", e.target.value)} />
 
         <label style={labelStyle}>Application deadline (closes)</label>
-        <input style={inputStyle} type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} required />
+        <input style={inputStyle} type="date" value={form.deadline} onChange={(e) => setField("deadline", e.target.value)} required />
 
         <label style={labelStyle}>Winner announced (optional)</label>
-        <input style={inputStyle} type="date" value={winnerDate} onChange={(e) => setWinnerDate(e.target.value)} />
+        <input style={inputStyle} type="date" value={form.winner_date} onChange={(e) => setField("winner_date", e.target.value)} />
 
-        <input style={inputStyle} type="url" placeholder="Official link (https://...)" value={link} onChange={(e) => setLink(e.target.value)} />
-        <input style={inputStyle} placeholder="Short description (your own words)" value={description} onChange={(e) => setDescription(e.target.value)} />
-        <input style={inputStyle} placeholder="Requirements" value={requirements} onChange={(e) => setRequirements(e.target.value)} />
-        <button type="submit" style={primaryButton}>Add scholarship</button>
+        <input style={inputStyle} type="url" placeholder="Official link (https://...)" value={form.link} onChange={(e) => setField("link", e.target.value)} />
+        <input style={inputStyle} placeholder="Short description (your own words)" value={form.description} onChange={(e) => setField("description", e.target.value)} />
+        <input style={inputStyle} placeholder="Requirements" value={form.requirements} onChange={(e) => setField("requirements", e.target.value)} />
+
+        <button type="submit" style={primaryButton}>
+          {editingId !== null ? "Save changes" : "Add scholarship"}
+        </button>
+        {editingId !== null && (
+          <button type="button" onClick={cancelEdit} style={{ ...smallButton, marginLeft: 8, padding: "8px 16px" }}>
+            Cancel
+          </button>
+        )}
       </form>
 
-      {scholarships.length === 0 && <p>No scholarships yet.</p>}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 16 }}>
+        <input
+          style={{ ...controlStyle, flex: 1, minWidth: 140 }}
+          placeholder="Search name, provider, requirements"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <select style={controlStyle} value={filter} onChange={(e) => setFilter(e.target.value)}>
+          <option value="all">All</option>
+          <option value="closing">Closing within 7 days</option>
+          {STATUSES.map((st) => (
+            <option key={st} value={st}>{st}</option>
+          ))}
+        </select>
+        <select style={controlStyle} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+          <option value="deadline">Sort: deadline (soonest)</option>
+          <option value="amount">Sort: amount (highest)</option>
+          <option value="name">Sort: name (A to Z)</option>
+          <option value="newest">Sort: newest added</option>
+        </select>
+        <label>
+          <input type="checkbox" checked={hideClosed} onChange={(e) => setHideClosed(e.target.checked)} /> Hide closed
+        </label>
+      </div>
 
-      {scholarships.map((s) => {
+      {!offline && scholarships.length === 0 && <p>No scholarships yet.</p>}
+      {scholarships.length > 0 && (
+        <p style={{ fontSize: 13, opacity: 0.8 }}>
+          Showing {visible.length} of {scholarships.length}
+        </p>
+      )}
+      {scholarships.length > 0 && visible.length === 0 && <p>Nothing matches your search or filters.</p>}
+
+      {visible.map((s) => {
         const status = windowStatus(s);
         const winner = winnerText(s);
 
         return (
           <div
             key={s.id}
-            style={{ background: theme.card, border: `1px solid ${theme.border}`, borderRadius: 8, padding: 16, marginBottom: 12 }}
+            style={{
+              background: theme.card,
+              border: `1px solid ${s.id === editingId ? theme.accent : theme.border}`,
+              borderRadius: 8,
+              padding: 16,
+              marginBottom: 12,
+            }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
               <h3 style={{ marginTop: 0 }}>{s.name}</h3>
@@ -329,13 +455,16 @@ function App() {
                 onChange={(e) => changeStatus(s.id, e.target.value)}
                 style={{ background: theme.card, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: 4, padding: 4 }}
               >
-                <option>Not Started</option>
-                <option>In Progress</option>
-                <option>Applied</option>
-                <option>Submitted</option>
+                {STATUSES.map((st) => (
+                  <option key={st}>{st}</option>
+                ))}
               </select>
             </p>
             {s.submitted_date && <p>Submitted on: {s.submitted_date}</p>}
+
+            <button onClick={() => startEdit(s)} style={smallButton}>
+              Edit
+            </button>{" "}
             <button onClick={() => deleteScholarship(s.id, s.name)} style={{ ...smallButton, color: "#c62828" }}>
               Delete
             </button>
