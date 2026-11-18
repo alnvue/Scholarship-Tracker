@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
+import "./retro.css";
 
 const API = "http://127.0.0.1:5000/api/scholarships";
+
+const PIXEL_FONT = '"Press Start 2P", "Courier New", monospace';
 
 const THEMES = {
   Light: { bg: "#f6f6f9", card: "#ffffff", text: "#222222", border: "#d8d8e0", accent: "#4f46e5" },
@@ -8,7 +11,47 @@ const THEMES = {
   Ocean: { bg: "#eaf6fb", card: "#ffffff", text: "#12343b", border: "#b9dbe6", accent: "#0b7a99" },
   Forest: { bg: "#eef5ee", card: "#ffffff", text: "#1d3322", border: "#c3d9c5", accent: "#2f7d46" },
   Sunset: { bg: "#fff3ea", card: "#ffffff", text: "#3b2418", border: "#f0cdb5", accent: "#d9531e" },
+  Quest: { bg: "#10261c", card: "#1b3a2a", text: "#f3e9c6", border: "#d9b64a", accent: "#e8c547", scene: "quest", font: PIXEL_FONT },
+  "Sky Run": { bg: "#5c94fc", card: "#fff6dc", text: "#2b1b0e", border: "#8a4b1c", accent: "#d9531e", scene: "sky", font: PIXEL_FONT },
+  "Monster Trail": { bg: "#6cc36c", card: "#fbfbf2", text: "#1d2b1d", border: "#2e5e2e", accent: "#3b6fd4", scene: "trail", font: PIXEL_FONT },
 };
+
+const BITS = Array.from({ length: 14 }, (_, i) => i);
+
+function Scene({ kind }) {
+  if (!kind) return null;
+
+  return (
+    <div className={`scene scene-${kind}`} aria-hidden="true">
+      {kind === "sky" && (
+        <>
+          <i className="cloud c1" />
+          <i className="cloud c2" />
+          <i className="cloud c3" />
+          <div className="ground" />
+        </>
+      )}
+      {kind === "quest" && (
+        <>
+          <div className="hill far" />
+          <div className="hill near" />
+        </>
+      )}
+      {(kind === "quest" || kind === "trail") &&
+        BITS.map((i) => (
+          <i
+            key={i}
+            className="bit"
+            style={{
+              left: `${(i * 37) % 100}%`,
+              top: kind === "quest" ? `${35 + ((i * 13) % 55)}%` : undefined,
+              animationDelay: `${-((i * 7) % 9)}s`,
+            }}
+          />
+        ))}
+    </div>
+  );
+}
 
 function loadSetting(key, fallback) {
   try {
@@ -84,7 +127,8 @@ function App() {
 
   useEffect(() => {
     document.body.style.background = theme.bg;
-  }, [theme.bg]);
+    document.body.classList.toggle("pixel", Boolean(theme.scene));
+  }, [theme.bg, theme.scene]);
 
   function chooseTheme(newName) {
     setThemeName(newName);
@@ -194,7 +238,8 @@ function App() {
   };
 
   return (
-    <div style={{ maxWidth: 700, margin: "0 auto", padding: "40px 16px", fontFamily: "sans-serif", textAlign: "left", color: theme.text }}>
+        <div style={{ maxWidth: 700, margin: "0 auto", padding: "40px 16px", fontFamily: theme.font || "sans-serif", textAlign: "left", color: theme.text }}>
+          <Scene kind={theme.scene} />
       <h1 style={{ fontSize: 36, marginBottom: 12 }}>Scholarship Tracker</h1>
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 24 }}>

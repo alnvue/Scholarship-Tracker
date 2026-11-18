@@ -1,0 +1,101 @@
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
+
+/* Pixel look applied whenever a scene theme is active */
+body.pixel { font-size: 10px; line-height: 1.9; }
+body.pixel h1 { font-size: 20px !important; line-height: 1.5; }
+body.pixel input,
+body.pixel select,
+body.pixel button {
+  font-family: inherit;
+  font-size: 10px !important;
+  border-radius: 0 !important;
+  border-width: 3px !important;
+}
+body.pixel div { border-radius: 0 !important; }
+body.pixel div[style*="solid"] { border-width: 3px !important; }
+
+/* Shared scene layer, sits behind everything */
+.scene { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+
+/* ---------- Sky Run ---------- */
+.scene-sky { background: linear-gradient(#5c94fc 0%, #a9c8ff 100%); }
+
+.cloud {
+  position: absolute;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  background: #fff;
+  animation: drift linear infinite;
+  box-shadow:
+    8px 0 #fff, 16px 0 #fff,
+    -16px 8px #fff, -8px 8px #fff, 0 8px #fff, 8px 8px #fff, 16px 8px #fff, 24px 8px #fff, 32px 8px #fff, 40px 8px #fff,
+    -24px 16px #fff, -16px 16px #fff, -8px 16px #fff, 0 16px #fff, 8px 16px #fff, 16px 16px #fff, 24px 16px #fff, 32px 16px #fff, 40px 16px #fff, 48px 16px #fff;
+}
+.c1 { top: 12%; animation-duration: 70s; }
+.c2 { top: 30%; animation-duration: 100s; animation-delay: -40s; scale: 1.7; }
+.c3 { top: 50%; animation-duration: 85s; animation-delay: -15s; scale: 1.2; }
+
+@keyframes drift {
+  from { transform: translateX(-200px); }
+  to { transform: translateX(calc(100vw + 200px)); }
+}
+
+.ground {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 56px;
+  border-top: 8px solid #3fa34d;
+  background:
+    repeating-linear-gradient(90deg, #0004 0 4px, transparent 4px 32px),
+    repeating-linear-gradient(0deg, #0004 0 4px, transparent 4px 16px),
+    #b5521d;
+}
+
+/* ---------- Quest ---------- */
+.scene-quest { background: linear-gradient(#0b1026 0%, #1d3b4a 65%, #2b5a3a 100%); }
+
+.hill { position: absolute; left: 0; right: 0; bottom: 0; }
+.hill.far {
+  height: 38vh;
+  background: #16402a;
+  clip-path: polygon(0 100%, 0 70%, 8% 70%, 8% 50%, 20% 50%, 20% 30%, 34% 30%, 34% 45%, 48% 45%, 48% 60%, 62% 60%, 62% 35%, 78% 35%, 78% 55%, 90% 55%, 90% 75%, 100% 75%, 100% 100%);
+}
+.hill.near {
+  height: 22vh;
+  background: #0f2e1c;
+  clip-path: polygon(0 100%, 0 55%, 12% 55%, 12% 25%, 28% 25%, 28% 60%, 46% 60%, 46% 35%, 66% 35%, 66% 70%, 84% 70%, 84% 40%, 100% 40%, 100% 100%);
+}
+
+.bit { position: absolute; width: 6px; height: 6px; }
+
+.scene-quest .bit {
+  background: #ffe66d;
+  box-shadow: 0 0 8px 2px #ffe66d99;
+  animation: firefly 7s ease-in-out infinite;
+}
+@keyframes firefly {
+  0%, 100% { transform: translate(0, 0); opacity: 0.2; }
+  25% { opacity: 1; }
+  50% { transform: translate(24px, -30px); opacity: 0.4; }
+  75% { transform: translate(-16px, -10px); opacity: 1; }
+}
+
+/* ---------- Monster Trail ---------- */
+.scene-trail {
+  background-color: #6cc36c;
+  background-image: conic-gradient(#5bb35b 25%, transparent 0 50%, #5bb35b 0 75%, transparent 0);
+  background-size: 64px 64px;
+  animation: scroll 8s linear infinite;
+}
+@keyframes scroll { to { background-position: 64px 64px; } }
+
+.scene-trail .bit { top: -10px; background: #2e7d32; animation: fall 9s linear infinite; }
+@keyframes fall { to { transform: translate(60px, 105vh) rotate(360deg); } }
+
+/* Respect people who turn off animations in their system settings */
+@media (prefers-reduced-motion: reduce) {
+  .scene, .scene * { animation: none !important; }
+}
